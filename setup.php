@@ -60,29 +60,41 @@ iwp_register_importer_addon('Polylang', 'polylang', function (AddonInterface $ad
                 return;
             }
 
+
+            // save language
+            $language = trim($meta['language']['value']);
+            if (!empty($language)) {
+                pll_set_post_language($api->object_id(), $language);
+            }
+
+            // save translations
             $parent_id = 0;
             $post_type = $api->importer_model()->getSetting('post_type');
+            $parent_type = isset($meta['_translation_type'], $meta['_translation_type']['value']) ? trim($meta['_translation_type']['value']) : false;
+            $translation = trim($meta['translation']['value']);
 
-            $parent_type = isset($meta['_translation_type'], $meta['_translation_type']['value']) ? $meta['_translation_type']['value'] : false;
+            if (empty($translation)) {
+                return;
+            }
 
             switch ($parent_type) {
                 case 'name':
                 case 'slug':
                     // name or slug
-                    $page = get_posts(array('name' => sanitize_title($meta['translation']['value']), 'post_type' => $post_type));
+                    $page = get_posts(array('name' => sanitize_title($translation), 'post_type' => $post_type));
                     if ($page) {
                         $parent_id = intval($page[0]->ID);
                     }
                     break;
                 case 'id':
-                    $parent_id = intval($meta['translation']['value']);
+                    $parent_id = intval($translation);
                     break;
                 case 'column':
 
                     // flag this on the post for future searches
-                    $api->update_meta('_iwp_pll_post_translation', $meta['_translation_ref']['value']);
+                    $api->update_meta('_iwp_pll_post_translation', trim($meta['_translation_ref']['value']));
 
-                    $temp_id = iwp_pll_get_post_by_cf('_iwp_pll_post_translation', $meta['translation']['value'], $post_type, $api->object_id());
+                    $temp_id = iwp_pll_get_post_by_cf('_iwp_pll_post_translation', $translation, $post_type, $api->object_id());
                     if (intval($temp_id > 0)) {
                         $parent_id = intval($temp_id);
                     }
@@ -90,22 +102,20 @@ iwp_register_importer_addon('Polylang', 'polylang', function (AddonInterface $ad
                     break;
             }
 
-            // save language
-            if (!empty($meta['language']['value'])) {
-                pll_set_post_language($api->object_id(), $meta['language']['value']);
-            }
-
             if ($parent_id !== $api->object_id() && $parent_id > 0) {
 
                 $parent_language = pll_get_post_language($parent_id);
                 $translations = pll_get_post_translations($parent_id);
-                $translations[$meta['language']['value']] = $api->object_id();
+                $translations[$language] = $api->object_id();
 
                 if ($parent_language) {
                     $translations[$parent_language] = $parent_id;
                 }
 
+                // need to do this due to the importer forcing this for speed.
+                wp_defer_term_counting(false);
                 pll_save_post_translations($translations);
+                wp_defer_term_counting(true);
             }
         });
     });
