@@ -10,6 +10,10 @@ Import WP Polylang Addon allows you to easily Import Polylang translations into 
 
 ## Changelog
 
+### Version 0.0.3
+
+- FIX - Fix issue with using reference column for translation field type.
+
 ### Version 0.0.2
 
 - FIX - remove term count deferring as this causes polylang to delete newly created translations due to empty terms.

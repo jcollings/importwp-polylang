@@ -72,6 +72,16 @@ iwp_register_importer_addon('Polylang', 'polylang', function (AddonInterface $ad
             $post_type = $api->importer_model()->getSetting('post_type');
             $parent_type = isset($meta['_translation_type'], $meta['_translation_type']['value']) ? trim($meta['_translation_type']['value']) : false;
             $translation = trim($meta['translation']['value']);
+            $ref_key = sprintf('_iwp_pll_post_translation_%s', $api->importer_model()->getStatusId());
+
+            if ($parent_type === 'column') {
+
+                // flag this on the post for future searches
+                $ref_value = trim($meta['_translation_ref']['value']);
+                if (!empty($ref_value)) {
+                    $api->update_meta($ref_key, trim($meta['_translation_ref']['value']));
+                }
+            }
 
             if (empty($translation)) {
                 return;
@@ -91,10 +101,7 @@ iwp_register_importer_addon('Polylang', 'polylang', function (AddonInterface $ad
                     break;
                 case 'column':
 
-                    // flag this on the post for future searches
-                    $api->update_meta('_iwp_pll_post_translation', trim($meta['_translation_ref']['value']));
-
-                    $temp_id = iwp_pll_get_post_by_cf('_iwp_pll_post_translation', $translation, $post_type, $api->object_id());
+                    $temp_id = iwp_pll_get_post_by_cf($ref_key, $translation, $post_type, $api->object_id());
                     if (intval($temp_id > 0)) {
                         $parent_id = intval($temp_id);
                     }
